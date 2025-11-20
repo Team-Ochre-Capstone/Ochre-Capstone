@@ -33,7 +33,7 @@ Capstone project for BS in Computer Science, University of Maine
 ## Project Structure
 
 - `docs/` - Project documentation (proposal, SRS)
-- `src/client/` - React frontend application
+- `src/webapp/` - React frontend application
 - `tests/` - End-to-end tests (to be added)
 
 ## Features
@@ -47,7 +47,11 @@ Capstone project for BS in Computer Science, University of Maine
 
 ## Team
 
-[Add team member names here]
+Israk Arafat
+Gregory Michaud
+Cooper Stepenkiw
+Bryan Sturdivant
+Ethan Wyman
 
 ## License
 
