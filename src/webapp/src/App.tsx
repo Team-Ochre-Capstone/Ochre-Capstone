@@ -1,7 +1,7 @@
-//Our main component - Where we should (I think) be building everything by making smaller components 
+//Our main component - Where (I believe) pretty much all of our work will be happening for the app
 
 
-import React from 'react'
+import React from 'react'//This might be able to be removed - I think newer versions of react dont need react to be imported - Keeping it just incase, but it  is underlined as an error
 
 function App() {
   return (
