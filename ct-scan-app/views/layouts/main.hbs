@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{title}} - Medical CT Scan 3D Modeling</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <div class="logo">
+                <h1>Medical CT Scan 3D Modeling</h1>
+            </div>
+            <div class="app-status" id="app-status">
+                {{#if fileInfo}}
+                    {{fileInfo.fileCount}} DICOM file(s) loaded
+                {{else}}
+                    No DICOM Loaded
+                {{/if}}
+            </div>
+        </header>
+
+        <nav>
+            <ul class="nav-tabs">
+                <li class="nav-tab {{#eq activeTab 'upload'}}active{{/eq}}">
+                    <a href="/">Home/Upload</a>
+                </li>
+                <li class="nav-tab {{#eq activeTab 'preview'}}active{{/eq}}">
+                    <a href="/preview">3D Preview</a>
+                </li>
+                <li class="nav-tab {{#eq activeTab 'export'}}active{{/eq}}">
+                    <a href="/export">Export</a>
+                </li>
+                <li class="nav-tab {{#eq activeTab 'settings'}}active{{/eq}}">
+                    <a href="/settings">Help/Settings</a>
+                </li>
+            </ul>
+        </nav>
+
+        <main>
+            {{{body}}}
+        </main>
+
+        <footer>
+            <p>Laboratory for Convergent Science - University of Maine</p>
+        </footer>
+    </div>
+
+    <script src="/js/app.js"></script>
+</body>
+</html>

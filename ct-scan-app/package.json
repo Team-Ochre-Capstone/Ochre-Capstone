@@ -1,0 +1,21 @@
+{
+  "name": "medical-ct-3d-modeling",
+  "version": "1.0.0",
+  "description": "Medical CT Scan 3D Modeling Web Application",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "express-handlebars": "^7.0.7",
+    "express-session": "^1.18.2",
+    "multer": "^1.4.5-lts.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}

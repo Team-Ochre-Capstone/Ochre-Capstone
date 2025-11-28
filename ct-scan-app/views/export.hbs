@@ -1,0 +1,133 @@
+<div class="content-panel">
+    <h2>Export 3D Model</h2>
+    <p>Choose output format and save location</p>
+    
+    <form id="export-form">
+        <div class="form-group">
+            <label class="form-label">Output Format</label>
+            <div class="radio-group">
+                <div class="radio-option">
+                    <input type="radio" id="format-stl" name="export-format" value="stl" checked>
+                    <label for="format-stl">STL File - Standard 3D mesh format for 3D printing and CAD software</label>
+                </div>
+                <div class="radio-option">
+                    <input type="radio" id="format-gcode" name="export-format" value="gcode">
+                    <label for="format-gcode">G-code - Direct 3D printer instructions with density information</label>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label" for="filename">Output Filename</label>
+            <input type="text" id="filename" name="filename" class="form-control" value="ct_scan_bone_model">
+            <small>Extension will be added automatically (.stl or .gcode)</small>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label" for="save-location">Save Location</label>
+            <input type="text" id="save-location" class="form-control" value="/Downloads" readonly>
+            <small>Select where to save the output file</small>
+        </div>
+        
+        <div class="form-group">
+            <h3>Export Summary</h3>
+            <p><strong>Tissue Type:</strong> <span id="export-tissue-type">Bone</span></p>
+            <p><strong>Format:</strong> <span id="export-format">STL</span></p>
+            <p><strong>Estimated Size:</strong> <span id="export-size">~45 MB</span></p>
+            <p><strong>Processing Time:</strong> <span id="export-time">~30 seconds</span></p>
+        </div>
+        
+        <div class="form-group">
+            <button type="button" class="btn btn-secondary" id="back-preview">Back</button>
+            <button type="button" class="btn btn-secondary" id="cancel-export">Cancel</button>
+            <button type="submit" class="btn btn-success" id="generate-download">Generate & Download</button>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const exportForm = document.getElementById('export-form');
+    const formatRadios = document.querySelectorAll('input[name="export-format"]');
+    const filenameInput = document.getElementById('filename');
+    const backPreviewBtn = document.getElementById('back-preview');
+    const cancelExportBtn = document.getElementById('cancel-export');
+    const generateDownloadBtn = document.getElementById('generate-download');
+    
+    // Navigation
+    backPreviewBtn.addEventListener('click', () => {
+        window.location.href = '/preview';
+    });
+    
+    cancelExportBtn.addEventListener('click', () => {
+        window.location.href = '/';
+    });
+    
+    // Format selection
+    formatRadios.forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            const format = e.target.value.toUpperCase();
+            document.getElementById('export-format').textContent = format;
+            
+            // Update filename extension hint
+            let currentName = filenameInput.value;
+            if (currentName.endsWith('.stl') || currentName.endsWith('.gcode')) {
+                currentName = currentName.substring(0, currentName.lastIndexOf('.'));
+            }
+            filenameInput.value = currentName;
+        });
+    });
+    
+    // Form submission
+    exportForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const format = document.querySelector('input[name="export-format"]:checked').value;
+        const filename = filenameInput.value;
+        const tissueType = 'bone'; // This would come from previous page in a real app
+        
+        if (!filename) {
+            alert('Please enter a filename');
+            return;
+        }
+        
+        // Disable button and show processing state
+        const originalText = generateDownloadBtn.textContent;
+        generateDownloadBtn.textContent = 'Processing...';
+        generateDownloadBtn.disabled = true;
+        
+        // Send export request to server
+        fetch('/api/export-model', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                format,
+                filename,
+                tissueType
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Trigger download
+                window.location.href = data.downloadUrl;
+                
+                // Reset button
+                generateDownloadBtn.textContent = originalText;
+                generateDownloadBtn.disabled = false;
+                
+                alert('File generated successfully!');
+            } else {
+                throw new Error(data.error);
+            }
+        })
+        .catch(error => {
+            alert('Export failed: ' + error.message);
+            generateDownloadBtn.textContent = originalText;
+            generateDownloadBtn.disabled = false;
+        });
+    });
+});
+</script>

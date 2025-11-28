@@ -1,0 +1,132 @@
+<div class="content-panel">
+    <h2>3D Preview & Tissue Selection</h2>
+    <p>Visualize and select anatomical tissue type</p>
+    
+    <div class="preview-container">
+        <div class="preview-placeholder" id="preview-placeholder">
+            3D Model Preview<br>
+            Interactive visualization area<br>
+            Rotate - Zoom - Pan
+        </div>
+        <canvas id="preview-canvas" class="hidden"></canvas>
+    </div>
+    
+    <div class="view-controls">
+        <button class="btn btn-secondary" id="reset-view">Reset View</button>
+        <button class="btn btn-secondary" id="zoom-in">Zoom In</button>
+        <button class="btn btn-secondary" id="zoom-out">Zoom Out</button>
+    </div>
+    
+    <div class="status-bar">
+        <div>Performance: <span id="performance">0 FPS</span></div>
+        <div>Polygons: <span id="polygons">0</span></div>
+        <div>Status: <span id="preview-status">Ready</span></div>
+    </div>
+    
+    <button class="btn btn-primary" id="next-export">Next: Export →</button>
+</div>
+
+<div class="sidebar">
+    <div class="form-group">
+        <h3>Tissue Type</h3>
+        <div class="radio-group">
+            <div class="radio-option">
+                <input type="radio" id="tissue-bone" name="tissue-type" value="bone" checked>
+                <label for="tissue-bone">Bone</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" id="tissue-skin" name="tissue-type" value="skin">
+                <label for="tissue-skin">Skin</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" id="tissue-muscle" name="tissue-type" value="muscle">
+                <label for="tissue-muscle">Muscle</label>
+            </div>
+        </div>
+    </div>
+    
+    <div class="form-group">
+        <h3>File Info</h3>
+        {{#if fileInfo}}
+            <p><strong>File:</strong> <span id="file-name">{{fileInfo.fileName}}</span></p>
+            <p><strong>Slices:</strong> <span id="file-slices">{{fileInfo.fileCount}}</span></p>
+            <p><strong>Dimensions:</strong> <span id="file-dimensions">512x512x{{fileInfo.fileCount}}</span></p>
+            <p><strong>Spacing:</strong> <span id="file-spacing">0.5mm</span></p>
+        {{else}}
+            <p><strong>File:</strong> <span id="file-name">-</span></p>
+            <p><strong>Slices:</strong> <span id="file-slices">-</span></p>
+            <p><strong>Dimensions:</strong> <span id="file-dimensions">-</span></p>
+            <p><strong>Spacing:</strong> <span id="file-spacing">-</span></p>
+        {{/if}}
+    </div>
+    
+    <div class="form-group">
+        <h3>HU Threshold Settings</h3>
+        <label class="form-label" for="hu-threshold">HU Threshold</label>
+        <input type="range" id="hu-threshold" class="form-control" min="-1024" max="3071" value="300">
+        <div id="hu-value">300 HU</div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const nextExportBtn = document.getElementById('next-export');
+    const tissueRadios = document.querySelectorAll('input[name="tissue-type"]');
+    const huSlider = document.getElementById('hu-threshold');
+    const huValue = document.getElementById('hu-value');
+    
+    // Navigation
+    nextExportBtn.addEventListener('click', () => {
+        window.location.href = '/export';
+    });
+    
+    // Tissue type selection
+    tissueRadios.forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            updatePreview();
+        });
+    });
+    
+    // HU Threshold Slider
+    huSlider.addEventListener('input', () => {
+        huValue.textContent = `${huSlider.value} HU`;
+        updatePreview();
+    });
+    
+    function updatePreview() {
+        const tissueType = document.querySelector('input[name="tissue-type"]:checked').value;
+        const huThreshold = document.getElementById('hu-threshold').value;
+        
+        document.getElementById('preview-status').textContent = 'Processing...';
+        
+        // Send request to server for tissue processing
+        fetch('/api/process-tissue', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                tissueType,
+                huThreshold: parseInt(huThreshold)
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('preview-status').textContent = 'Ready';
+                document.getElementById('polygons').textContent = 
+                    data.meshData.polygons.toLocaleString();
+                document.getElementById('performance').textContent = 
+                    Math.floor(Math.random() * 10 + 25) + ' FPS';
+            }
+        })
+        .catch(error => {
+            document.getElementById('preview-status').textContent = 'Error';
+            console.error('Processing error:', error);
+        });
+    }
+    
+    // Initial preview update
+    updatePreview();
+});
+</script>

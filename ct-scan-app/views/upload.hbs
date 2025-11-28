@@ -1,0 +1,228 @@
+<div class="content-panel">
+    <h2>Upload DICOM File</h2>
+    <p>Select a DICOM file or folder from your local machine</p>
+    
+    <form id="upload-form" enctype="multipart/form-data">
+        <div class="upload-area" id="upload-area">
+            <div id="upload-prompt">
+                <p>Drop DICOM files here</p>
+                <p>or click to browse</p>
+            </div>
+            <div id="file-list" class="hidden" style="margin-top: 1rem;"></div>
+            <div id="upload-progress" class="hidden" style="margin-top: 1rem;">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+                <p id="progress-text">Uploading...</p>
+            </div>
+        </div>
+        
+        <input type="file" id="file-input" name="dicomFiles" accept=".dcm,.DCM" multiple class="hidden">
+        <button type="button" class="btn btn-primary" id="browse-btn">Browse Files</button>
+        <button type="button" class="btn btn-secondary" id="clear-files" style="display: none;">Clear Files</button>
+        
+        <div class="form-group">
+            <div class="alert alert-warning hidden" id="upload-warning"></div>
+            <div class="alert alert-success hidden" id="upload-success"></div>
+            <div class="alert alert-error hidden" id="upload-error"></div>
+        </div>
+    </form>
+</div>
+
+<style>
+.progress-bar {
+    width: 100%;
+    height: 20px;
+    background-color: #f0f0f0;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background-color: #3498db;
+    width: 0%;
+    transition: width 0.3s ease;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadForm = document.getElementById('upload-form');
+    const uploadArea = document.getElementById('upload-area');
+    const uploadPrompt = document.getElementById('upload-prompt');
+    const fileInput = document.getElementById('file-input');
+    const browseBtn = document.getElementById('browse-btn');
+    const clearBtn = document.getElementById('clear-files');
+    const uploadWarning = document.getElementById('upload-warning');
+    const uploadSuccess = document.getElementById('upload-success');
+    const uploadError = document.getElementById('upload-error');
+    const fileList = document.getElementById('file-list');
+    const uploadProgress = document.getElementById('upload-progress');
+    const progressFill = document.getElementById('progress-fill');
+    const progressText = document.getElementById('progress-text');
+
+    let selectedFiles = [];
+
+    // Click to browse
+    browseBtn.addEventListener('click', () => {
+        fileInput.click();
+    });
+    
+    uploadArea.addEventListener('click', (e) => {
+        if (e.target === uploadArea || e.target === uploadPrompt) {
+            fileInput.click();
+        }
+    });
+    
+    // Drag and drop functionality
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('active');
+    });
+    
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('active');
+    });
+    
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('active');
+        
+        const files = e.dataTransfer.files;
+        handleFileSelection(files);
+    });
+    
+    fileInput.addEventListener('change', (e) => {
+        handleFileSelection(e.target.files);
+    });
+
+    clearBtn.addEventListener('click', () => {
+        clearFileSelection();
+    });
+    
+    function handleFileSelection(files) {
+        if (files.length === 0) return;
+        
+        selectedFiles = Array.from(files);
+        showFileList(selectedFiles);
+        uploadFiles(selectedFiles);
+    }
+    
+    function clearFileSelection() {
+        selectedFiles = [];
+        fileInput.value = '';
+        fileList.classList.add('hidden');
+        fileList.innerHTML = '';
+        uploadPrompt.classList.remove('hidden');
+        clearBtn.style.display = 'none';
+        browseBtn.textContent = 'Browse Files';
+        
+        // Clear messages
+        uploadWarning.classList.add('hidden');
+        uploadSuccess.classList.add('hidden');
+        uploadError.classList.add('hidden');
+        uploadProgress.classList.add('hidden');
+    }
+    
+    function showFileList(files) {
+        fileList.innerHTML = '<strong>Selected files:</strong><br>';
+        files.forEach((file, index) => {
+            const isValid = file.name.toLowerCase().endsWith('.dcm');
+            const status = isValid ? '✓' : '✗';
+            const color = isValid ? 'green' : 'red';
+            fileList.innerHTML += 
+                `<span style="color: ${color}">${status}</span> ${file.name} (${formatFileSize(file.size)})<br>`;
+        });
+        fileList.classList.remove('hidden');
+        uploadPrompt.classList.add('hidden');
+        clearBtn.style.display = 'inline-block';
+        browseBtn.textContent = 'Select Different Files';
+    }
+    
+    function uploadFiles(files) {
+        // Clear previous messages
+        uploadWarning.classList.add('hidden');
+        uploadSuccess.classList.add('hidden');
+        uploadError.classList.add('hidden');
+        
+        // Show progress
+        uploadProgress.classList.remove('hidden');
+        progressFill.style.width = '0%';
+        progressText.textContent = 'Preparing upload...';
+        
+        const formData = new FormData();
+        let validFileCount = 0;
+        
+        files.forEach(file => {
+            if (file.name.toLowerCase().endsWith('.dcm')) {
+                formData.append('dicomFiles', file);
+                validFileCount++;
+            }
+        });
+        
+        if (validFileCount === 0) {
+            uploadError.textContent = 'No valid DICOM files found. Please select files with .dcm extension.';
+            uploadError.classList.remove('hidden');
+            uploadProgress.classList.add('hidden');
+            return;
+        }
+        
+        // Simulate progress for better UX
+        let progress = 0;
+        const progressInterval = setInterval(() => {
+            progress += Math.random() * 10;
+            if (progress > 90) progress = 90;
+            progressFill.style.width = progress + '%';
+            progressText.textContent = `Uploading... ${Math.round(progress)}%`;
+        }, 200);
+        
+        // Perform upload
+        fetch('/api/upload', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            clearInterval(progressInterval);
+            progressFill.style.width = '100%';
+            progressText.textContent = 'Processing files...';
+            
+            if (!response.ok) {
+                return response.json().then(errorData => {
+                    throw new Error(errorData.error || `Upload failed with status ${response.status}`);
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                progressText.textContent = 'Upload complete!';
+                uploadSuccess.textContent = data.message;
+                uploadSuccess.classList.remove('hidden');
+                
+                // Redirect after a short delay
+                setTimeout(() => {
+                    window.location.href = data.redirect;
+                }, 1500);
+            } else {
+                throw new Error(data.error || 'Upload failed');
+            }
+        })
+        .catch(error => {
+            clearInterval(progressInterval);
+            uploadProgress.classList.add('hidden');
+            uploadError.textContent = error.message;
+            uploadError.classList.remove('hidden');
+            console.error('Upload error:', error);
+        });
+    }
+    
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+});
+</script>

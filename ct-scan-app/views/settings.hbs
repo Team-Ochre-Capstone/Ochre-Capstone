@@ -1,0 +1,126 @@
+<div class="content-panel">
+    <h2>Help & Settings</h2>
+    <p>User guidance and application settings</p>
+    
+    <form id="settings-form">
+        <div class="settings-section">
+            <h3>Quick Start Guide</h3>
+            <ol>
+                <li><strong>Upload DICOM</strong> - Select your CT scan file from your computer</li>
+                <li><strong>Select Tissue</strong> - Choose bone, skin, or muscle for visualization</li>
+                <li><strong>Preview Model</strong> - Rotate and inspect the 3D reconstruction</li>
+                <li><strong>Export File</strong> - Choose STL or G-code and download</li>
+            </ol>
+        </div>
+        
+        <div class="settings-section">
+            <h3>Display Settings</h3>
+            <div class="form-group">
+                <label class="form-label" for="render-quality">Render Quality</label>
+                <select id="render-quality" name="renderQuality" class="form-control">
+                    <option value="high">High (recommended)</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="background-color">Background Color</label>
+                <select id="background-color" name="backgroundColor" class="form-control">
+                    <option value="light-gray">Light Gray (default)</option>
+                    <option value="white">White</option>
+                    <option value="black">Black</option>
+                </select>
+            </div>
+            <div class="checkbox-group">
+                <div class="checkbox-option">
+                    <input type="checkbox" id="show-grid" name="showGrid" checked>
+                    <label for="show-grid">Show Grid</label>
+                </div>
+            </div>
+        </div>
+        
+        <div class="settings-section">
+            <h3>Supported Formats</h3>
+            <p><strong>Input:</strong> DICOM files (.dcm) and DICOM folders</p>
+            <p><strong>Output:</strong> STL (.stl) and G-code (.gcode)</p>
+        </div>
+        
+        <div class="settings-section">
+            <h3>Processing Settings</h3>
+            <div class="checkbox-group">
+                <div class="checkbox-option">
+                    <input type="checkbox" id="auto-optimize" name="autoOptimize" checked>
+                    <label for="auto-optimize">Auto-optimize meshes - Reduce polygon count for better performance</label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="default-export">Default Export Format</label>
+                <select id="default-export" name="defaultExport" class="form-control">
+                    <option value="stl">STL</option>
+                    <option value="gcode">G-code</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="settings-section">
+            <h3>Browser Compatibility</h3>
+            <p>Chrome (recommended), Firefox, Safari</p>
+        </div>
+        
+        <div class="settings-section">
+            <h3>Privacy & Data</h3>
+            <div class="checkbox-group">
+                <div class="checkbox-option">
+                    <input type="checkbox" id="save-recent" name="saveRecent" checked>
+                    <label for="save-recent">Save recent files (cookies)</label>
+                </div>
+            </div>
+            <button type="button" class="btn btn-secondary" id="clear-history">Clear History</button>
+        </div>
+        
+        <div class="settings-section">
+            <h3>About</h3>
+            <p>Medical CT Scan 3D Modeling Application</p>
+            <p>Laboratory for Convergent Science</p>
+            <p>University of Maine</p>
+            <p>Version 1.0</p>
+        </div>
+        
+        <button type="button" class="btn btn-primary" id="back-home">Back to Home</button>
+        <button type="submit" class="btn btn-success" id="save-settings">Save Settings</button>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const backHomeBtn = document.getElementById('back-home');
+    const clearHistoryBtn = document.getElementById('clear-history');
+    const saveSettingsBtn = document.getElementById('save-settings');
+    const settingsForm = document.getElementById('settings-form');
+    
+    // Navigation
+    backHomeBtn.addEventListener('click', () => {
+        window.location.href = '/';
+    });
+    
+    // Clear history
+    clearHistoryBtn.addEventListener('click', () => {
+        if (confirm('Are you sure you want to clear all history and saved files?')) {
+            // In a real implementation, this would clear cookies and local storage
+            alert('History cleared');
+        }
+    });
+    
+    // Save settings
+    settingsForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const formData = new FormData(settingsForm);
+        const settings = Object.fromEntries(formData);
+        
+        // In a real implementation, you would save these to the server or localStorage
+        console.log('Saving settings:', settings);
+        alert('Settings saved successfully!');
+    });
+});
+</script>
