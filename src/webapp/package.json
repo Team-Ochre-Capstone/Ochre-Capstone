@@ -10,8 +10,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@itk-wasm/dicom": "^7.6.4",
+    "@itk-wasm/image-io": "^1.6.0",
     "@kitware/vtk.js": "^34.15.1",
     "@tailwindcss/vite": "^4.1.17",
+    "gl-matrix": "^3.4.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.9.6",
@@ -22,7 +25,8 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
     "typescript": "^5.9.3",
-    "vite": "^7.2.4"
+    "vite": "^7.2.4",
+    "vite-plugin-static-copy": "^3.1.4"
   },
   "keywords": [],
   "author": "Slice is Right Team",

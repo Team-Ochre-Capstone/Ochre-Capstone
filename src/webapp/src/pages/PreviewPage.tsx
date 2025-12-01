@@ -1,20 +1,29 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { TissueType, FileInfo } from "../types";
-import { getFromSession } from "../utils/storage";
-import { formatFileSize } from "../utils/fileUtils";
+import Viewer3D from "../components/Viewer3D";
+import { TissueType } from "../types";
+import { useDicomContext } from "../contexts/DicomContext";
 
 const PreviewPage = () => {
   const navigate = useNavigate();
+  const { getVtkImage, fileInfo, hasData } = useDicomContext();
+
   const [tissueType, setTissueType] = useState<TissueType>("bone");
   const [huThreshold, setHuThreshold] = useState(300);
-  const [fileInfo, setFileInfo] = useState<FileInfo | null>(null);
+  const [isViewerReady, setIsViewerReady] = useState(false);
 
+  // Redirect if no data
   useEffect(() => {
-    // Load file info from session
-    const savedFileInfo = getFromSession<FileInfo>("fileInfo");
-    setFileInfo(savedFileInfo);
-  }, []);
+    if (!hasData) {
+      navigate("/");
+    }
+  }, [hasData, navigate]);
+
+  if (!hasData) {
+    return null;
+  }
+
+  const vtkImage = getVtkImage();
 
   const handleTissueChange = (type: TissueType) => {
     setTissueType(type);
@@ -49,52 +58,40 @@ const PreviewPage = () => {
 
         {/* 3D Preview Area */}
         <div
-          className="relative bg-gray-100 rounded-lg mb-6 flex items-center justify-center"
-          style={{ height: "400px" }}
+          className="relative bg-gray-900 rounded-lg mb-6 overflow-hidden"
+          style={{ height: "500px" }}
         >
-          <div className="text-center text-gray-500">
-            <svg
-              className="mx-auto h-24 w-24 mb-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"
-              />
-            </svg>
-            <p className="text-lg font-medium">3D Model Preview</p>
-            <p className="text-sm">Interactive visualization area</p>
-            <p className="text-sm text-gray-400 mt-2">Rotate - Zoom - Pan</p>
-          </div>
-        </div>
-
-        {/* View Controls */}
-        <div className="flex gap-3 mb-6">
-          <button className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors">
-            Reset View
-          </button>
-          <button className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors">
-            Zoom In
-          </button>
-          <button className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors">
-            Zoom Out
-          </button>
+          <Viewer3D
+            vtkImage={vtkImage}
+            window={4000}
+            level={1000}
+            onReady={() => setIsViewerReady(true)}
+          />
         </div>
 
         {/* Status Bar */}
         <div className="flex justify-between text-sm text-gray-600 bg-gray-50 p-4 rounded-md mb-6">
           <div>
-            Performance: <span className="font-medium">60 FPS</span>
+            Viewer:{" "}
+            <span className="font-medium">
+              {isViewerReady ? "Ready" : "Loading..."}
+            </span>
           </div>
           <div>
-            Polygons: <span className="font-medium">0</span>
+            Files:{" "}
+            <span className="font-medium">
+              {fileInfo?.length || 0} DICOM files
+            </span>
           </div>
           <div>
-            Status: <span className="font-medium text-green-600">Ready</span>
+            Status:{" "}
+            <span
+              className={`font-medium ${
+                isViewerReady ? "text-green-600" : "text-yellow-600"
+              }`}
+            >
+              {isViewerReady ? "Interactive" : "Initializing"}
+            </span>
           </div>
         </div>
 
@@ -147,26 +144,31 @@ const PreviewPage = () => {
           <h3 className="text-xl font-semibold mb-4 text-gray-800">
             File Info
           </h3>
-          {fileInfo ? (
+          {fileInfo && fileInfo.length > 0 ? (
             <div className="space-y-2 text-sm text-gray-600">
+              {fileInfo[0].patientName && (
+                <p>
+                  <strong>Patient:</strong> {fileInfo[0].patientName}
+                </p>
+              )}
+              {fileInfo[0].seriesDescription && (
+                <p>
+                  <strong>Series:</strong> {fileInfo[0].seriesDescription}
+                </p>
+              )}
+              {fileInfo[0].studyDate && (
+                <p>
+                  <strong>Date:</strong> {fileInfo[0].studyDate}
+                </p>
+              )}
               <p>
-                <strong>File:</strong> {fileInfo.fileName}
-              </p>
-              <p>
-                <strong>Slices:</strong> {fileInfo.fileCount}
-              </p>
-              <p>
-                <strong>Dimensions:</strong> 512x512x{fileInfo.fileCount}
-              </p>
-              <p>
-                <strong>Spacing:</strong> 0.5mm
-              </p>
-              <p>
-                <strong>Size:</strong> {formatFileSize(fileInfo.fileSize)}
+                <strong>Files:</strong> {fileInfo.length} DICOM files
               </p>
             </div>
           ) : (
-            <p className="text-sm text-gray-500">No file loaded</p>
+            <p className="text-sm text-gray-500">
+              No file information available
+            </p>
           )}
         </div>
 
