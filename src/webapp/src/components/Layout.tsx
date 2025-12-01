@@ -1,10 +1,12 @@
 import { Link, useLocation } from "react-router-dom";
+import logo from "../assets/logo.png";
 
 const Header = () => {
   return (
-    <header className="bg-slate-800 text-white px-8 py-4 shadow-lg">
+    <header className="bg-slate-800 text-white px-8 py-2 shadow-lg">
       <div className="flex justify-between items-center">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <img src={logo} alt="Medical CT-Scan Logo" className="h-14 w-auto" />
           <h1 className="text-2xl font-semibold">
             Medical CT-Scan 3D Printing
           </h1>

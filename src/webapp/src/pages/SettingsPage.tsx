@@ -9,7 +9,7 @@ const SettingsPage = () => {
   const [saveRecent, setSaveRecent] = useState(true);
 
   const handleSaveSettings = () => {
-    // Settings are auto-saved via the hook, just show confirmation
+    // We will save them in local storage or cookie
     alert("Settings saved successfully!");
   };
 
