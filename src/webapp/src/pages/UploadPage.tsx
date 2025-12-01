@@ -176,7 +176,7 @@ const UploadPage = () => {
             <div className="space-y-4">
               <div className="w-full bg-gray-200 rounded-full h-5">
                 <div
-                  className="bg-blue-500 h-5 rounded-full transition-all duration-300"
+                  className="bg-blue-500 h-5 rounded-full"
                   style={{ width: `${progress}%` }}
                 />
               </div>
