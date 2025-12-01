@@ -5,7 +5,12 @@ import { useDicomContext } from "../contexts/DicomContext";
 
 const UploadPage = () => {
   const navigate = useNavigate();
-  const { setDicomData, hasData } = useDicomContext();
+  const {
+    setDicomData,
+    hasData,
+    getVtkImage,
+    fileInfo: contextFileInfo,
+  } = useDicomContext();
   const {
     uploadDicomFiles,
     clearUpload,
@@ -20,6 +25,11 @@ const UploadPage = () => {
 
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Use context data if available, otherwise use hook data
+  const displayFileInfo = hasData ? contextFileInfo : fileInfo;
+  const displayVtkImage = hasData ? getVtkImage() : vtkImage;
+  const displayIsComplete = hasData || isComplete;
 
   const handleFileSelect = useCallback(
     (files: FileList | null) => {
@@ -106,8 +116,8 @@ const UploadPage = () => {
   };
 
   const handleNextClick = () => {
-    if (vtkImage) {
-      setDicomData(vtkImage, fileInfo);
+    if (displayVtkImage) {
+      setDicomData(displayVtkImage, displayFileInfo);
       navigate("/preview");
     }
   };
@@ -133,7 +143,7 @@ const UploadPage = () => {
           onDrop={handleDrop}
           onClick={handleBrowseClick}
         >
-          {!isLoading && !isComplete && (
+          {!isLoading && !displayIsComplete && (
             <div className="cursor-pointer">
               <svg
                 className="mx-auto h-16 w-16 text-gray-400 mb-4"
@@ -170,7 +180,7 @@ const UploadPage = () => {
             </div>
           )}
 
-          {isComplete && fileInfo.length > 0 && (
+          {displayIsComplete && displayFileInfo.length > 0 && (
             <div className="text-left">
               <div className="flex items-center gap-2 mb-4">
                 <svg
@@ -187,24 +197,26 @@ const UploadPage = () => {
                   />
                 </svg>
                 <p className="font-semibold text-green-700">
-                  Successfully loaded {fileInfo.length} DICOM files
+                  Successfully loaded {displayFileInfo.length} DICOM files
                 </p>
               </div>
-              {fileInfo[0] && (
+              {displayFileInfo[0] && (
                 <div className="text-sm text-gray-600 space-y-1">
-                  {fileInfo[0].patientName && (
+                  {displayFileInfo[0].patientName && (
                     <p>
-                      <strong>Patient:</strong> {fileInfo[0].patientName}
+                      <strong>Patient:</strong> {displayFileInfo[0].patientName}
                     </p>
                   )}
-                  {fileInfo[0].seriesDescription && (
+                  {displayFileInfo[0].seriesDescription && (
                     <p>
-                      <strong>Series:</strong> {fileInfo[0].seriesDescription}
+                      <strong>Series:</strong>{" "}
+                      {displayFileInfo[0].seriesDescription}
                     </p>
                   )}
-                  {fileInfo[0].studyDate && (
+                  {displayFileInfo[0].studyDate && (
                     <p>
-                      <strong>Study Date:</strong> {fileInfo[0].studyDate}
+                      <strong>Study Date:</strong>{" "}
+                      {displayFileInfo[0].studyDate}
                     </p>
                   )}
                 </div>
@@ -225,7 +237,7 @@ const UploadPage = () => {
         />
 
         <div className="mt-6 flex gap-3">
-          {isComplete && (
+          {displayIsComplete && (
             <button
               onClick={handleBrowseClick}
               className="px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -234,7 +246,7 @@ const UploadPage = () => {
             </button>
           )}
 
-          {isComplete && (
+          {displayIsComplete && (
             <button
               onClick={handleClearFiles}
               className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
@@ -251,13 +263,22 @@ const UploadPage = () => {
           </div>
         )}
 
-        {isComplete && vtkImage && (
-          <div className="mt-6">
+        {displayIsComplete && displayVtkImage && (
+          <div className="mt-6 flex gap-3">
             <button
               onClick={handleNextClick}
-              className="w-full px-6 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors font-medium"
+              className="flex-1 px-6 py-3 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 transition-colors font-medium"
             >
               Continue to 3D Preview →
+            </button>
+            <button
+              onClick={() => {
+                setDicomData(displayVtkImage, displayFileInfo);
+                navigate("/export");
+              }}
+              className="flex-1 px-6 py-3 bg-emerald-500 text-white rounded-md hover:bg-emerald-600 transition-colors font-medium"
+            >
+              Skip to Export →
             </button>
           </div>
         )}
