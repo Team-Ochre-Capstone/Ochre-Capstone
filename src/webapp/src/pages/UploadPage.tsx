@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDicomUpload } from "../hooks/useDicomUpload";
 import { useDicomContext } from "../contexts/DicomContext";
@@ -25,6 +25,13 @@ const UploadPage = () => {
 
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Automatically sync new upload data to context when complete
+  useEffect(() => {
+    if (isComplete && vtkImage && fileInfo.length > 0 && !hasData) {
+      setDicomData(vtkImage, fileInfo);
+    }
+  }, [isComplete, vtkImage, fileInfo, hasData, setDicomData]);
 
   // Use context data if available, otherwise use hook data
   const displayFileInfo = hasData ? contextFileInfo : fileInfo;

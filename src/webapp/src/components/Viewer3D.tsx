@@ -37,6 +37,7 @@ export default function Viewer3D({
 
     const renderer = fullScreenRenderer.getRenderer();
     const renderWindow = fullScreenRenderer.getRenderWindow();
+    const interactor = renderWindow.getInteractor();
 
     // Create volume mapper
     const mapper = vtkVolumeMapper.newInstance();
@@ -87,10 +88,37 @@ export default function Viewer3D({
 
     // Cleanup
     return () => {
+      setIsReady(false);
+
+      // Disable interactor to prevent pointer events during cleanup
+      if (interactor) {
+        interactor.unbindEvents();
+      }
+
+      // Clean up VTK objects
+      if (actor) {
+        actor.delete();
+      }
+      if (mapper) {
+        mapper.delete();
+      }
+      if (ctfun) {
+        ctfun.delete();
+      }
+      if (ofun) {
+        ofun.delete();
+      }
+
+      // Delete the full screen renderer last
       if (fullScreenRendererRef.current) {
-        fullScreenRendererRef.current.delete();
+        try {
+          fullScreenRendererRef.current.delete();
+        } catch (e) {
+          console.warn("Error cleaning up VTK renderer:", e);
+        }
         fullScreenRendererRef.current = null;
       }
+
       rendererRef.current = null;
       renderWindowRef.current = null;
       volumeActorRef.current = null;
