@@ -1,40 +1,97 @@
 import { useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { useFileUpload } from "../hooks/useFileUpload";
-import { formatFileSize } from "../utils/fileUtils";
+import { useDicomUpload } from "../hooks/useDicomUpload";
+import { useDicomContext } from "../contexts/DicomContext";
 
 const UploadPage = () => {
   const navigate = useNavigate();
-  const { uploadFiles, clearUpload, uploadProgress, fileInfo, error } =
-    useFileUpload();
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const { setDicomData, hasData } = useDicomContext();
+  const {
+    uploadDicomFiles,
+    clearUpload,
+    isLoading,
+    isComplete,
+    error,
+    progress,
+    statusMessage,
+    vtkImage,
+    fileInfo,
+  } = useDicomUpload();
+
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = useCallback(
     (files: FileList | null) => {
       if (!files || files.length === 0) return;
-
-      const fileArray = Array.from(files);
-      setSelectedFiles(fileArray);
-      uploadFiles(fileArray);
+      uploadDicomFiles(files);
     },
-    [uploadFiles]
+    [uploadDicomFiles]
   );
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDragging(true);
   };
 
-  const handleDragLeave = () => {
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     setIsDragging(false);
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDragging(false);
-    handleFileSelect(e.dataTransfer.files);
+
+    const items = e.dataTransfer.items;
+    if (!items || items.length === 0) return;
+
+    const files: File[] = [];
+
+    // Process all dropped items
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.kind === "file") {
+        const entry = item.webkitGetAsEntry();
+        if (entry) {
+          await traverseFileTree(entry, files);
+        }
+      }
+    }
+
+    if (files.length > 0) {
+      const fileList = createFileList(files);
+      handleFileSelect(fileList);
+    }
+  };
+
+  // Helper to traverse folder structure
+  const traverseFileTree = async (entry: any, files: File[]): Promise<void> => {
+    if (entry.isFile) {
+      const file = await new Promise<File>((resolve) => {
+        entry.file((f: File) => resolve(f));
+      });
+      files.push(file);
+    } else if (entry.isDirectory) {
+      const dirReader = entry.createReader();
+      const entries = await new Promise<any[]>((resolve) => {
+        dirReader.readEntries((results: any[]) => resolve(results));
+      });
+
+      for (const childEntry of entries) {
+        await traverseFileTree(childEntry, files);
+      }
+    }
+  };
+
+  // Helper to create FileList from File array
+  const createFileList = (files: File[]): FileList => {
+    const dataTransfer = new DataTransfer();
+    files.forEach((file) => dataTransfer.items.add(file));
+    return dataTransfer.files;
   };
 
   const handleBrowseClick = () => {
@@ -42,7 +99,6 @@ const UploadPage = () => {
   };
 
   const handleClearFiles = () => {
-    setSelectedFiles([]);
     clearUpload();
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -50,7 +106,8 @@ const UploadPage = () => {
   };
 
   const handleNextClick = () => {
-    if (fileInfo) {
+    if (vtkImage) {
+      setDicomData(vtkImage, fileInfo);
       navigate("/preview");
     }
   };
@@ -59,10 +116,10 @@ const UploadPage = () => {
     <div className="max-w-4xl mx-auto">
       <div className="bg-white rounded-lg shadow-md p-8">
         <h2 className="text-3xl font-semibold mb-2 text-gray-800">
-          Upload DICOM File
+          Upload DICOM Files
         </h2>
         <p className="text-gray-600 mb-6">
-          Select a DICOM file or folder from your local machine
+          Select a DICOM folder from your local machine
         </p>
 
         <div
@@ -76,10 +133,10 @@ const UploadPage = () => {
           onDrop={handleDrop}
           onClick={handleBrowseClick}
         >
-          {!selectedFiles.length && !uploadProgress.isUploading && (
+          {!isLoading && !isComplete && (
             <div className="cursor-pointer">
               <svg
-                className="mx-auto h-12 w-12 text-gray-400 mb-4"
+                className="mx-auto h-16 w-16 text-gray-400 mb-4"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -88,46 +145,70 @@ const UploadPage = () => {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                  d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                 />
               </svg>
               <p className="text-lg text-gray-600 mb-2">
-                Drop DICOM files here
+                Drop DICOM folder here
               </p>
               <p className="text-sm text-gray-500">or click to browse</p>
             </div>
           )}
 
-          {selectedFiles.length > 0 && !uploadProgress.isUploading && (
-            <div className="text-left">
-              <p className="font-semibold mb-2">Selected files:</p>
-              {selectedFiles.map((file, index) => {
-                const isValid = file.name.toLowerCase().endsWith(".dcm");
-                return (
-                  <div key={index} className="flex items-center gap-2 mb-1">
-                    <span
-                      className={isValid ? "text-green-600" : "text-red-600"}
-                    >
-                      {isValid ? "✓" : "✗"}
-                    </span>
-                    <span className="text-gray-700">
-                      {file.name} ({formatFileSize(file.size)})
-                    </span>
-                  </div>
-                );
-              })}
+          {isLoading && (
+            <div className="space-y-4">
+              <div className="w-full bg-gray-200 rounded-full h-5">
+                <div
+                  className="bg-blue-500 h-5 rounded-full transition-all duration-300"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <p className="text-gray-700 font-medium">{statusMessage}</p>
+              <p className="text-sm text-gray-500">
+                {progress.toFixed(0)}% complete
+              </p>
             </div>
           )}
 
-          {uploadProgress.isUploading && (
-            <div>
-              <div className="w-full bg-gray-200 rounded-full h-5 mb-3">
-                <div
-                  className="bg-blue-500 h-5 rounded-full transition-all duration-300"
-                  style={{ width: `${uploadProgress.progress}%` }}
-                />
+          {isComplete && fileInfo.length > 0 && (
+            <div className="text-left">
+              <div className="flex items-center gap-2 mb-4">
+                <svg
+                  className="w-8 h-8 text-green-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+                <p className="font-semibold text-green-700">
+                  Successfully loaded {fileInfo.length} DICOM files
+                </p>
               </div>
-              <p className="text-gray-700">{uploadProgress.message}</p>
+              {fileInfo[0] && (
+                <div className="text-sm text-gray-600 space-y-1">
+                  {fileInfo[0].patientName && (
+                    <p>
+                      <strong>Patient:</strong> {fileInfo[0].patientName}
+                    </p>
+                  )}
+                  {fileInfo[0].seriesDescription && (
+                    <p>
+                      <strong>Series:</strong> {fileInfo[0].seriesDescription}
+                    </p>
+                  )}
+                  {fileInfo[0].studyDate && (
+                    <p>
+                      <strong>Study Date:</strong> {fileInfo[0].studyDate}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -135,65 +216,48 @@ const UploadPage = () => {
         <input
           ref={fileInputRef}
           type="file"
-          accept=".dcm,.DCM"
+          // @ts-ignore - webkitdirectory is not in TypeScript definitions
+          webkitdirectory=""
+          directory=""
           multiple
           className="hidden"
           onChange={(e) => handleFileSelect(e.target.files)}
         />
 
         <div className="mt-6 flex gap-3">
-          <button
-            onClick={handleBrowseClick}
-            className="px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-          >
-            {selectedFiles.length > 0
-              ? "Select Different Files"
-              : "Browse Files"}
-          </button>
+          {isComplete && (
+            <button
+              onClick={handleBrowseClick}
+              className="px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Select Different Folder
+            </button>
+          )}
 
-          {selectedFiles.length > 0 && (
+          {isComplete && (
             <button
               onClick={handleClearFiles}
               className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
             >
-              Clear Files
+              Clear
             </button>
           )}
         </div>
 
         {error && (
           <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
-            <p className="text-red-700">{error}</p>
+            <p className="text-red-700 font-medium">Error</p>
+            <p className="text-red-600 text-sm mt-1">{error}</p>
           </div>
         )}
 
-        {uploadProgress.progress === 100 && !uploadProgress.isUploading && (
-          <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-md">
-            <p className="text-green-700">Files uploaded successfully!</p>
-          </div>
-        )}
-
-        {fileInfo && (
-          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
-            <h3 className="font-semibold text-blue-900 mb-2">
-              File Information
-            </h3>
-            <div className="text-sm text-blue-800">
-              <p>
-                <strong>Files:</strong> {fileInfo.fileName}
-              </p>
-              <p>
-                <strong>Count:</strong> {fileInfo.fileCount}
-              </p>
-              <p>
-                <strong>Size:</strong> {formatFileSize(fileInfo.fileSize)}
-              </p>
-            </div>
+        {isComplete && vtkImage && (
+          <div className="mt-6">
             <button
               onClick={handleNextClick}
-              className="mt-4 px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+              className="w-full px-6 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors font-medium"
             >
-              Next: Preview →
+              Continue to 3D Preview →
             </button>
           </div>
         )}
