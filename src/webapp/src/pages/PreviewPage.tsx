@@ -64,7 +64,7 @@ const PreviewPage = () => {
           <Viewer3D
             vtkImage={vtkImage}
             window={4000}
-            level={1000}
+            level={huThreshold}
             onReady={() => setIsViewerReady(true)}
           />
         </div>

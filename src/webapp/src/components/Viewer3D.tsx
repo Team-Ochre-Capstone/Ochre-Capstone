@@ -17,6 +17,8 @@ interface Viewer3DProps {
 export default function Viewer3D({
   vtkImage,
   className = "",
+  window = 4000,
+  level = 300,
   onReady,
 }: Viewer3DProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -24,6 +26,8 @@ export default function Viewer3D({
   const rendererRef = useRef<any>(null);
   const renderWindowRef = useRef<any>(null);
   const volumeActorRef = useRef<any>(null);
+  const ctfunRef = useRef<any>(null);
+  const ofunRef = useRef<any>(null);
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
@@ -37,7 +41,6 @@ export default function Viewer3D({
 
     const renderer = fullScreenRenderer.getRenderer();
     const renderWindow = fullScreenRenderer.getRenderWindow();
-    const interactor = renderWindow.getInteractor();
 
     // Create volume mapper
     const mapper = vtkVolumeMapper.newInstance();
@@ -50,14 +53,20 @@ export default function Viewer3D({
 
     // Configure color transfer function
     const ctfun = vtkColorTransferFunction.newInstance();
-    ctfun.addRGBPoint(200.0, 0.4, 0.6, 0.8);
-    ctfun.addRGBPoint(2000.0, 1.0, 1.0, 1.0);
+    // Set initial points
+    ctfun.addRGBPoint(level - 200, 0.0, 0.0, 0.0);
+    ctfun.addRGBPoint(level, 0.6, 0.5, 0.4);
+    ctfun.addRGBPoint(level + 500, 0.9, 0.8, 0.7);
+    ctfun.addRGBPoint(level + 1500, 1.0, 1.0, 1.0);
 
     // Configure opacity transfer function
     const ofun = vtkPiecewiseFunction.newInstance();
-    ofun.addPoint(300.0, 0.0);
-    ofun.addPoint(500.0, 0.7);
-    ofun.addPoint(2000.0, 1.0);
+    // Set initial points
+    ofun.addPoint(level - 200, 0.0);
+    ofun.addPoint(level - 50, 0.0);
+    ofun.addPoint(level, 0.3);
+    ofun.addPoint(level + 200, 0.8);
+    ofun.addPoint(level + 1000, 1.0);
 
     actor.getProperty().setRGBTransferFunction(0, ctfun);
     actor.getProperty().setScalarOpacity(0, ofun);
@@ -77,6 +86,8 @@ export default function Viewer3D({
     rendererRef.current = renderer;
     renderWindowRef.current = renderWindow;
     volumeActorRef.current = actor;
+    ctfunRef.current = ctfun;
+    ofunRef.current = ofun;
 
     // Initial render
     renderWindow.render();
@@ -88,42 +99,51 @@ export default function Viewer3D({
 
     // Cleanup
     return () => {
-      setIsReady(false);
-
-      // Disable interactor to prevent pointer events during cleanup
-      if (interactor) {
-        interactor.unbindEvents();
-      }
-
-      // Clean up VTK objects
-      if (actor) {
-        actor.delete();
-      }
-      if (mapper) {
-        mapper.delete();
-      }
-      if (ctfun) {
-        ctfun.delete();
-      }
-      if (ofun) {
-        ofun.delete();
-      }
-
-      // Delete the full screen renderer last
       if (fullScreenRendererRef.current) {
-        try {
-          fullScreenRendererRef.current.delete();
-        } catch (e) {
-          console.warn("Error cleaning up VTK renderer:", e);
-        }
+        fullScreenRendererRef.current.delete();
         fullScreenRendererRef.current = null;
       }
-
       rendererRef.current = null;
       renderWindowRef.current = null;
       volumeActorRef.current = null;
+      ctfunRef.current = null;
+      ofunRef.current = null;
     };
-  }, [vtkImage, onReady]);
+  }, [vtkImage, onReady, level]);
+
+  // Update transfer functions when window/level changes
+  useEffect(() => {
+    if (!ctfunRef.current || !ofunRef.current || !renderWindowRef.current) return;
+
+    const ctfun = ctfunRef.current;
+    const ofun = ofunRef.current;
+
+    // Clear existing points
+    ctfun.removeAllPoints();
+    ofun.removeAllPoints();
+
+    // For bone/tissue visualization, level is the threshold
+    // Show opacity from threshold upward
+    const threshold = level;
+    
+    // Set color transfer function
+    // Dark for low values, bright for high values
+    ctfun.addRGBPoint(threshold - 200, 0.0, 0.0, 0.0);
+    ctfun.addRGBPoint(threshold, 0.6, 0.5, 0.4);
+    ctfun.addRGBPoint(threshold + 500, 0.9, 0.8, 0.7);
+    ctfun.addRGBPoint(threshold + 1500, 1.0, 1.0, 1.0);
+
+    // Set opacity transfer function
+    // Transparent below threshold, opaque above
+    ofun.addPoint(threshold - 200, 0.0);
+    ofun.addPoint(threshold - 50, 0.0);
+    ofun.addPoint(threshold, 0.3);
+    ofun.addPoint(threshold + 200, 0.8);
+    ofun.addPoint(threshold + 1000, 1.0);
+
+    // Trigger re-render
+    renderWindowRef.current.render();
+  }, [window, level]);
 
   const handleReset = () => {
     if (rendererRef.current && renderWindowRef.current) {
