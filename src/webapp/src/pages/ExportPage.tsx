@@ -1,11 +1,19 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ExportFormat } from "../types";
+import { useDicomContext } from "../contexts/DicomContext";
+import { exportToSTL, HU_THRESHOLDS } from "../utils";
 
 const ExportPage = () => {
   const navigate = useNavigate();
+  const { getVtkImage, hasData } = useDicomContext();
   const [exportFormat, setExportFormat] = useState<ExportFormat>("stl");
   const [filename, setFilename] = useState("ct_scan_bone_model");
+  const [threshold, setThreshold] = useState<
+    keyof typeof HU_THRESHOLDS | "custom"
+  >("BONE");
+  const [customThreshold, setCustomThreshold] = useState(300);
+  const [smoothing, setSmoothing] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
 
   const handleExport = async () => {
@@ -14,21 +22,27 @@ const ExportPage = () => {
       return;
     }
 
+    const vtkImage = getVtkImage();
+    if (!vtkImage) {
+      alert("No DICOM data loaded. Please upload files first.");
+      navigate("/");
+      return;
+    }
+
     setIsExporting(true);
 
     try {
-      // Simulate export process
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      if (exportFormat === "stl") {
+        const thresholdValue =
+          threshold === "custom" ? customThreshold : threshold;
 
-      // In a real implementation, this would:
-      // 1. Process the DICOM data with vtk.js
-      // 2. Generate STL or G-code
-      // 3. Trigger browser download
+        await exportToSTL(vtkImage, filename, thresholdValue, smoothing);
 
-      const fullFilename = `${filename}.${exportFormat}`;
-      alert(
-        `Export complete! File: ${fullFilename}\n\nIn a production app, the file would download now.`
-      );
+        alert(`STL file exported successfully: ${filename}.stl`);
+      } else {
+        // G-code export (placeholder for future implementation)
+        alert("G-code export is not yet implemented");
+      }
     } catch (error) {
       alert("Export failed. Please try again.");
       console.error("Export error:", error);
@@ -85,6 +99,7 @@ const ExportPage = () => {
                 value="gcode"
                 checked={exportFormat === "gcode"}
                 onChange={() => setExportFormat("gcode")}
+                disabled
                 className="mt-1 w-4 h-4 text-blue-500"
               />
               <div>
@@ -118,25 +133,83 @@ const ExportPage = () => {
           </p>
         </div>
 
-        {/* Save Location */}
-        <div className="mb-8">
-          <label
-            htmlFor="save-location"
-            className="block text-sm font-medium text-gray-700 mb-2"
-          >
-            Save Location
-          </label>
-          <input
-            type="text"
-            id="save-location"
-            value="/Downloads"
-            readOnly
-            className="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600"
-          />
-          <p className="mt-1 text-sm text-gray-500">
-            Browser default download location will be used
-          </p>
-        </div>
+        {/* Threshold Selection (for STL only) */}
+        {exportFormat === "stl" && (
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              Tissue Threshold (HU)
+            </label>
+            <div className="space-y-2">
+              {(
+                Object.keys(HU_THRESHOLDS) as Array<keyof typeof HU_THRESHOLDS>
+              ).map((key) => (
+                <label
+                  key={key}
+                  className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-gray-50"
+                >
+                  <input
+                    type="radio"
+                    name="threshold"
+                    value={key}
+                    checked={threshold === key}
+                    onChange={() => setThreshold(key)}
+                    className="w-4 h-4 text-blue-500"
+                  />
+                  <span className="font-medium text-gray-800 flex-1">
+                    {key.replace(/_/g, " ")}
+                  </span>
+                  <span className="text-sm text-gray-500">
+                    {HU_THRESHOLDS[key]} HU
+                  </span>
+                </label>
+              ))}
+              <label className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                <input
+                  type="radio"
+                  name="threshold"
+                  value="custom"
+                  checked={threshold === "custom"}
+                  onChange={() => setThreshold("custom")}
+                  className="w-4 h-4 text-blue-500"
+                />
+                <span className="font-medium text-gray-800">Custom</span>
+                <input
+                  type="number"
+                  value={customThreshold}
+                  onChange={(e) => setCustomThreshold(Number(e.target.value))}
+                  disabled={threshold !== "custom"}
+                  className="ml-auto w-24 px-2 py-1 border rounded disabled:bg-gray-100"
+                  placeholder="HU"
+                />
+              </label>
+            </div>
+            <p className="mt-2 text-sm text-gray-500">
+              Higher values = denser tissue. Common: Bone (300), Soft tissue
+              (40)
+            </p>
+          </div>
+        )}
+
+        {/* Smoothing Option (for STL only) */}
+        {exportFormat === "stl" && (
+          <div className="mb-6">
+            <label className="flex items-start gap-3 p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
+              <input
+                type="checkbox"
+                checked={smoothing}
+                onChange={(e) => setSmoothing(e.target.checked)}
+                className="mt-1 w-4 h-4 text-blue-500 rounded"
+              />
+              <div className="flex-1">
+                <div className="font-medium text-gray-800">Apply Smoothing</div>
+                <div className="text-sm text-gray-600 mt-1">
+                  Smooth the mesh surface for better 3D printing results. Uses
+                  windowed sinc smoothing with 15 iterations.
+                </div>
+              </div>
+            </label>
+          </div>
+        )}
 
         {/* Export Summary */}
         <div className="mb-8 p-6 bg-blue-50 border border-blue-200 rounded-lg">
@@ -144,17 +217,27 @@ const ExportPage = () => {
             Export Summary
           </h3>
           <div className="space-y-2 text-sm text-blue-800">
-            <p>
-              <strong>Tissue Type:</strong> Bone
-            </p>
+            {exportFormat === "stl" && (
+              <>
+                <p>
+                  <strong>Threshold:</strong>{" "}
+                  {threshold === "custom"
+                    ? `${customThreshold} HU`
+                    : `${threshold.replace(/_/g, " ")} (${
+                        HU_THRESHOLDS[threshold as keyof typeof HU_THRESHOLDS]
+                      } HU)`}
+                </p>
+                <p>
+                  <strong>Smoothing:</strong>{" "}
+                  {smoothing ? "Enabled" : "Disabled"}
+                </p>
+              </>
+            )}
             <p>
               <strong>Format:</strong> {exportFormat.toUpperCase()}
             </p>
             <p>
-              <strong>Estimated Size:</strong> ~45 MB
-            </p>
-            <p>
-              <strong>Processing Time:</strong> ~30 seconds
+              <strong>Filename:</strong> {filename}.{exportFormat}
             </p>
           </div>
         </div>
@@ -168,13 +251,13 @@ const ExportPage = () => {
           >
             Back
           </button>
-          <button
+          {/* <button
             onClick={handleCancel}
             className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
             disabled={isExporting}
           >
             Cancel
-          </button>
+          </button> */}
           <button
             onClick={handleExport}
             disabled={isExporting}
