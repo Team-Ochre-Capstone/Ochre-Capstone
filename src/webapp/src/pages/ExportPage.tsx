@@ -4,6 +4,12 @@ import { ExportFormat } from "../types";
 import { useDicomContext } from "../contexts/DicomContext";
 import { exportToSTL, HU_THRESHOLDS } from "../utils";
 
+const TISSUE_LABELS: Record<keyof typeof HU_THRESHOLDS, string> = {
+  HIGH_DENSITY: "High Density (Bone)",
+  MEDIUM_DENSITY: "Medium Density (Muscle/Organs/Brain)",
+  LOW_DENSITY: "Low Density (Skin)",
+};
+
 const ExportPage = () => {
   const navigate = useNavigate();
   const { getVtkImage, hasData } = useDicomContext();
@@ -11,7 +17,7 @@ const ExportPage = () => {
   const [filename, setFilename] = useState("ct_scan_bone_model");
   const [threshold, setThreshold] = useState<
     keyof typeof HU_THRESHOLDS | "custom"
-  >("BONE");
+  >("HIGH_DENSITY");
   const [customThreshold, setCustomThreshold] = useState(300);
   const [smoothing, setSmoothing] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
@@ -40,7 +46,6 @@ const ExportPage = () => {
 
         alert(`STL file exported successfully: ${filename}.stl`);
       } else {
-        // G-code export (placeholder for future implementation)
         alert("G-code export is not yet implemented");
       }
     } catch (error) {
@@ -51,13 +56,26 @@ const ExportPage = () => {
     }
   };
 
-  const handleBack = () => {
-    navigate("/preview");
-  };
-
   const handleCancel = () => {
     navigate("/");
   };
+
+  if (!hasData) {
+    return (
+      <div className="max-w-xl mx-auto mt-10 text-center">
+        <h2 className="text-2xl font-semibold mb-2">No scan loaded</h2>
+        <p className="text-gray-600 mb-4">
+          Please upload and preview a CT scan before exporting a 3D model.
+        </p>
+        <button
+          onClick={() => navigate("/")}
+          className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+        >
+          Go to Upload
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -91,8 +109,7 @@ const ExportPage = () => {
                 </div>
               </div>
             </label>
-
-            <label className="flex items-start gap-3 p-4 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+            <label className="bg-gray-300 flex items-start gap-3 p-4 border rounded-lg cursor-pointer hover:bg-gray-300 transition-colors">
               <input
                 type="radio"
                 name="export-format"
@@ -103,7 +120,12 @@ const ExportPage = () => {
                 className="mt-1 w-4 h-4 text-blue-500"
               />
               <div>
-                <div className="font-medium text-gray-800">G-code</div>
+                <div className="font-medium text-gray-800">
+                  G-code{" "}
+                  <span className="text-xs inline-flex items-center px-2 py-0.5 rounded bg-gray-200 text-gray-700 ml-2">
+                    Coming soon
+                  </span>
+                </div>
                 <div className="text-sm text-gray-600">
                   Direct 3D printer instructions with density information
                 </div>
@@ -145,7 +167,7 @@ const ExportPage = () => {
               ).map((key) => (
                 <label
                   key={key}
-                  className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-gray-50"
+                  className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
                 >
                   <input
                     type="radio"
@@ -156,9 +178,9 @@ const ExportPage = () => {
                     className="w-4 h-4 text-blue-500"
                   />
                   <span className="font-medium text-gray-800 flex-1">
-                    {key.replace(/_/g, " ")}
+                    {TISSUE_LABELS[key]}
                   </span>
-                  <span className="text-sm text-gray-500">
+                  <span className="text-sm text-gray-500 whitespace-nowrap">
                     {HU_THRESHOLDS[key]} HU
                   </span>
                 </label>
@@ -176,8 +198,14 @@ const ExportPage = () => {
                 <input
                   type="number"
                   value={customThreshold}
-                  onChange={(e) => setCustomThreshold(Number(e.target.value))}
+                  onChange={(e) =>
+                    setCustomThreshold(
+                      Math.max(-1000, Math.min(3000, Number(e.target.value)))
+                    )
+                  }
                   disabled={threshold !== "custom"}
+                  min="-1000"
+                  max="3000"
                   className="ml-auto w-24 px-2 py-1 border rounded disabled:bg-gray-100"
                   placeholder="HU"
                 />
@@ -222,8 +250,10 @@ const ExportPage = () => {
                 <p>
                   <strong>Threshold:</strong>{" "}
                   {threshold === "custom"
-                    ? `${customThreshold} HU`
-                    : `${threshold.replace(/_/g, " ")} (${
+                    ? `${customThreshold} HU (Custom)`
+                    : `${
+                        TISSUE_LABELS[threshold as keyof typeof HU_THRESHOLDS]
+                      } (${
                         HU_THRESHOLDS[threshold as keyof typeof HU_THRESHOLDS]
                       } HU)`}
                 </p>
@@ -245,19 +275,12 @@ const ExportPage = () => {
         {/* Action Buttons */}
         <div className="flex gap-3">
           <button
-            onClick={handleBack}
-            className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
-            disabled={isExporting}
-          >
-            Back
-          </button>
-          {/* <button
             onClick={handleCancel}
             className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
             disabled={isExporting}
           >
             Cancel
-          </button> */}
+          </button>
           <button
             onClick={handleExport}
             disabled={isExporting}

@@ -94,11 +94,9 @@ export function downloadSTL(
  * Common HU (Hounsfield Unit) threshold values for CT scans
  */
 export const HU_THRESHOLDS = {
-  BONE: 300, // Cortical bone
-  SOFT_BONE: 150, // Cancellous bone
-  SOFT_TISSUE: 40, // Muscle/organs
-  FAT: -50, // Adipose tissue
-  LUNG: -500, // Lung tissue
+  HIGH_DENSITY: 300, // Bone
+  MEDIUM_DENSITY: 40, // Muscle/organs/brain
+  LOW_DENSITY: -50, // Skin/fat
 } as const;
 
 /**
@@ -110,7 +108,7 @@ export const HU_THRESHOLDS = {
 export async function exportToSTL(
   imageData: vtkImageData,
   filename: string,
-  tissueType: keyof typeof HU_THRESHOLDS | number = "BONE",
+  tissueType: keyof typeof HU_THRESHOLDS | number = "HIGH_DENSITY",
   smoothing: boolean = false
 ): Promise<void> {
   const isoValue =
