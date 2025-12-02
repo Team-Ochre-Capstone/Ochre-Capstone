@@ -53,20 +53,21 @@ export default function Viewer3D({
 
     // Configure color transfer function
     const ctfun = vtkColorTransferFunction.newInstance();
-    // Set initial points
-    ctfun.addRGBPoint(level - 200, 0.0, 0.0, 0.0);
-    ctfun.addRGBPoint(level, 0.6, 0.5, 0.4);
-    ctfun.addRGBPoint(level + 500, 0.9, 0.8, 0.7);
-    ctfun.addRGBPoint(level + 1500, 1.0, 1.0, 1.0);
+    // Set initial points (will be updated by second useEffect)
+    const initialLevel = 300;
+    ctfun.addRGBPoint(initialLevel - 200, 0.0, 0.0, 0.0);
+    ctfun.addRGBPoint(initialLevel, 0.6, 0.5, 0.4);
+    ctfun.addRGBPoint(initialLevel + 500, 0.9, 0.8, 0.7);
+    ctfun.addRGBPoint(initialLevel + 1500, 1.0, 1.0, 1.0);
 
     // Configure opacity transfer function
     const ofun = vtkPiecewiseFunction.newInstance();
-    // Set initial points
-    ofun.addPoint(level - 200, 0.0);
-    ofun.addPoint(level - 50, 0.0);
-    ofun.addPoint(level, 0.3);
-    ofun.addPoint(level + 200, 0.8);
-    ofun.addPoint(level + 1000, 1.0);
+    // Set initial points (will be updated by second useEffect)
+    ofun.addPoint(initialLevel - 200, 0.0);
+    ofun.addPoint(initialLevel - 50, 0.0);
+    ofun.addPoint(initialLevel, 0.3);
+    ofun.addPoint(initialLevel + 200, 0.8);
+    ofun.addPoint(initialLevel + 1000, 1.0);
 
     actor.getProperty().setRGBTransferFunction(0, ctfun);
     actor.getProperty().setScalarOpacity(0, ofun);
@@ -100,6 +101,10 @@ export default function Viewer3D({
     // Cleanup
     return () => {
       if (fullScreenRendererRef.current) {
+        const interactor = fullScreenRendererRef.current.getInteractor();
+        if (interactor) {
+          interactor.unbindEvents();
+        }
         fullScreenRendererRef.current.delete();
         fullScreenRendererRef.current = null;
       }
@@ -109,11 +114,17 @@ export default function Viewer3D({
       ctfunRef.current = null;
       ofunRef.current = null;
     };
-  }, [vtkImage, onReady, level]);
+  }, [vtkImage, onReady]);
 
   // Update transfer functions when window/level changes
   useEffect(() => {
-    if (!ctfunRef.current || !ofunRef.current || !renderWindowRef.current) return;
+    if (
+      !ctfunRef.current ||
+      !ofunRef.current ||
+      !renderWindowRef.current ||
+      !isReady
+    )
+      return;
 
     const ctfun = ctfunRef.current;
     const ofun = ofunRef.current;
@@ -125,7 +136,7 @@ export default function Viewer3D({
     // For bone/tissue visualization, level is the threshold
     // Show opacity from threshold upward
     const threshold = level;
-    
+
     // Set color transfer function
     // Dark for low values, bright for high values
     ctfun.addRGBPoint(threshold - 200, 0.0, 0.0, 0.0);
@@ -143,11 +154,19 @@ export default function Viewer3D({
 
     // Trigger re-render
     renderWindowRef.current.render();
-  }, [window, level]);
+  }, [window, level, isReady]);
 
   const handleReset = () => {
     if (rendererRef.current && renderWindowRef.current) {
-      rendererRef.current.resetCamera();
+      const renderer = rendererRef.current;
+      const camera = renderer.getActiveCamera();
+      renderer.resetCamera();
+      camera.setPosition(0, 0, 1);
+      camera.setViewUp(0, 1, 0);
+      camera.setFocalPoint(0, 0, 0);
+
+      renderer.resetCamera();
+
       renderWindowRef.current.render();
     }
   };

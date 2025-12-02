@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Viewer3D from "../components/Viewer3D";
 import { TissueType } from "../types";
@@ -11,6 +11,10 @@ const PreviewPage = () => {
   const [tissueType, setTissueType] = useState<TissueType>("bone");
   const [huThreshold, setHuThreshold] = useState(300);
   const [isViewerReady, setIsViewerReady] = useState(false);
+
+  const handleViewerReady = useCallback(() => {
+    setIsViewerReady(true);
+  }, []);
 
   // Redirect if no data
   useEffect(() => {
@@ -65,7 +69,7 @@ const PreviewPage = () => {
             vtkImage={vtkImage}
             window={4000}
             level={huThreshold}
-            onReady={() => setIsViewerReady(true)}
+            onReady={handleViewerReady}
           />
         </div>
 
