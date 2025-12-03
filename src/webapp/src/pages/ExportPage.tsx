@@ -63,9 +63,9 @@ const ExportPage = () => {
   if (!hasData) {
     return (
       <div className="max-w-xl mx-auto mt-10 text-center">
-        <h2 className="text-2xl font-semibold mb-2">No scan loaded</h2>
+        <h2 className="text-2xl font-semibold mb-2">No file loaded</h2>
         <p className="text-gray-600 mb-4">
-          Please upload and preview a CT scan before exporting a 3D model.
+          Please upload a CT scan before previewing a 3D model.
         </p>
         <button
           onClick={() => navigate("/")}

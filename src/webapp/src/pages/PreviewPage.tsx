@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Viewer3D from "../components/Viewer3D";
 import { TissueType } from "../types";
@@ -22,7 +22,7 @@ const PreviewPage = () => {
       <div className="max-w-xl mx-auto mt-10 text-center">
         <h2 className="text-2xl font-semibold mb-2">No file loaded</h2>
         <p className="text-gray-600 mb-4">
-          Please upload and preview a CT scan before previewing a 3D model.
+          Please upload a CT scan before previewing a 3D model.
         </p>
         <button
           onClick={() => navigate("/")}
