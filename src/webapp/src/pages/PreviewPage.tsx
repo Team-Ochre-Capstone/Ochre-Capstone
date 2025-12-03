@@ -16,18 +16,26 @@ const PreviewPage = () => {
     setIsViewerReady(true);
   }, []);
 
-  // Redirect if no data
-  useEffect(() => {
-    if (!hasData) {
-      navigate("/");
-    }
-  }, [hasData, navigate]);
-
+  //Redirect if no data
   if (!hasData) {
-    return null;
+    return (
+      <div className="max-w-xl mx-auto mt-10 text-center">
+        <h2 className="text-2xl font-semibold mb-2">No file loaded</h2>
+        <p className="text-gray-600 mb-4">
+          Please upload and preview a CT scan before previewing a 3D model.
+        </p>
+        <button
+          onClick={() => navigate("/")}
+          className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+        >
+          Go to Upload
+        </button>
+      </div>
+    );
   }
 
   const vtkImage = getVtkImage();
+
 
   const handleTissueChange = (type: TissueType) => {
     setTissueType(type);
