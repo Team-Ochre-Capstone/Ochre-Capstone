@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ExportFormat } from "../types";
 import { useDicomContext } from "../contexts/DicomContext";
 import { exportToSTL, HU_THRESHOLDS } from "../utils";
+import ExportProgressModal from "../components/ExportProgressModal";
 
 const TISSUE_LABELS: Record<keyof typeof HU_THRESHOLDS, string> = {
   HIGH_DENSITY: "High Density (Bone)",
@@ -21,6 +22,16 @@ const ExportPage = () => {
   const [customThreshold, setCustomThreshold] = useState(300);
   const [smoothing, setSmoothing] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
+  const [exportStage, setExportStage] = useState<
+    "marching-cubes" | "smoothing" | "writing" | "complete" | null
+  >(null);
+  const [exportMetrics, setExportMetrics] = useState<{
+    marchingCubesTime?: number;
+    smoothingTime?: number;
+    writingTime?: number;
+    totalTime?: number;
+    polygonCount?: number;
+  }>({});
 
   const handleExport = async () => {
     if (!filename.trim()) {
@@ -36,28 +47,45 @@ const ExportPage = () => {
     }
 
     setIsExporting(true);
+    setExportStage(null);
+    setExportMetrics({});
 
     try {
       if (exportFormat === "stl") {
         const thresholdValue =
           threshold === "custom" ? customThreshold : threshold;
 
-        await exportToSTL(vtkImage, filename, thresholdValue, smoothing);
-
-        alert(`STL file exported successfully: ${filename}.stl`);
+        await exportToSTL(
+          vtkImage,
+          filename,
+          thresholdValue,
+          smoothing,
+          (stage, metrics) => {
+            setExportStage(stage);
+            setExportMetrics((prev) => ({ ...prev, ...metrics }));
+          }
+        );
       } else {
+        setIsExporting(false);
         alert("G-code export is not yet implemented");
       }
     } catch (error) {
+      setIsExporting(false);
+      setExportStage(null);
+      setExportMetrics({});
       alert("Export failed. Please try again.");
       console.error("Export error:", error);
-    } finally {
-      setIsExporting(false);
     }
   };
 
   const handleCancel = () => {
     navigate("/");
+  };
+
+  const handleModalClose = () => {
+    setIsExporting(false);
+    setExportStage(null);
+    setExportMetrics({});
   };
 
   if (!hasData) {
@@ -79,6 +107,13 @@ const ExportPage = () => {
 
   return (
     <div className="max-w-4xl mx-auto">
+      <ExportProgressModal
+        isOpen={isExporting}
+        stage={exportStage}
+        metrics={exportMetrics}
+        onClose={handleModalClose}
+      />
+
       <div className="bg-white rounded-lg shadow-md p-8">
         <h2 className="text-3xl font-semibold mb-2 text-gray-800">
           Export 3D Model

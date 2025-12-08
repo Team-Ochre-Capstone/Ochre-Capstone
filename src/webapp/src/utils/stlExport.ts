@@ -10,6 +10,19 @@ export interface STLExportOptions {
   binary?: boolean;
   /** Optional: Smooth the mesh */
   smoothing?: boolean;
+  /** Optional: Progress callback */
+  onProgress?: (
+    stage: "marching-cubes" | "smoothing" | "writing" | "complete",
+    metrics: ExportMetrics
+  ) => void;
+}
+
+export interface ExportMetrics {
+  marchingCubesTime?: number;
+  smoothingTime?: number;
+  writingTime?: number;
+  totalTime?: number;
+  polygonCount?: number;
 }
 
 /**
@@ -22,9 +35,12 @@ export function generateSTL(
   imageData: vtkImageData,
   options: STLExportOptions
 ): Uint8Array {
-  const { isoValue, binary = true, smoothing = true } = options;
+  const { isoValue, binary = true, smoothing = true, onProgress } = options;
+  const metrics: ExportMetrics = {};
+  const startTime = performance.now();
 
   // Create marching cubes filter to extract isosurface
+  const mcStart = performance.now();
   const marchingCubes = vtkImageMarchingCubes.newInstance({
     contourValue: isoValue,
     computeNormals: true,
@@ -33,11 +49,22 @@ export function generateSTL(
 
   // Connect input
   marchingCubes.setInputData(imageData);
+  marchingCubes.update();
+
+  const mcEnd = performance.now();
+  metrics.marchingCubesTime = mcEnd - mcStart;
+
+  // Get polygon count
+  const mcOutput = marchingCubes.getOutputData();
+  metrics.polygonCount = mcOutput.getNumberOfPolys();
+
+  onProgress?.("marching-cubes", { ...metrics });
 
   // Apply smoothing if requested
   let finalOutput = marchingCubes.getOutputPort();
 
   if (smoothing) {
+    const smoothStart = performance.now();
     const smoother = vtkWindowedSincPolyDataFilter.newInstance({
       numberOfIterations: 15, // moderate smoothing
       passBand: 0.1, // VTK's recommended default
@@ -48,10 +75,17 @@ export function generateSTL(
     });
 
     smoother.setInputConnection(marchingCubes.getOutputPort());
+    smoother.update();
     finalOutput = smoother.getOutputPort();
+
+    const smoothEnd = performance.now();
+    metrics.smoothingTime = smoothEnd - smoothStart;
+
+    onProgress?.("smoothing", { ...metrics });
   }
 
   // Create STL writer
+  const writeStart = performance.now();
   const writer = vtkSTLWriter.newInstance({
     binary,
   });
@@ -61,6 +95,12 @@ export function generateSTL(
 
   // Generate STL data
   const stlData = writer.getOutputData();
+
+  const writeEnd = performance.now();
+  metrics.writingTime = writeEnd - writeStart;
+  metrics.totalTime = writeEnd - startTime;
+
+  onProgress?.("writing", { ...metrics });
 
   return stlData;
 }
@@ -104,12 +144,18 @@ export const HU_THRESHOLDS = {
  * @param imageData - VTK image data
  * @param filename - Output filename
  * @param tissueType - Preset tissue type or custom threshold
+ * @param smoothing - Whether to apply smoothing
+ * @param onProgress - Optional progress callback
  */
 export async function exportToSTL(
   imageData: vtkImageData,
   filename: string,
   tissueType: keyof typeof HU_THRESHOLDS | number = "HIGH_DENSITY",
-  smoothing: boolean = false
+  smoothing: boolean = false,
+  onProgress?: (
+    stage: "marching-cubes" | "smoothing" | "writing" | "complete",
+    metrics: ExportMetrics
+  ) => void
 ): Promise<void> {
   const isoValue =
     typeof tissueType === "number" ? tissueType : HU_THRESHOLDS[tissueType];
@@ -122,9 +168,16 @@ export async function exportToSTL(
           isoValue,
           binary: true,
           smoothing,
+          onProgress,
         });
 
         downloadSTL(stlData, filename);
+
+        // Call onProgress with complete stage
+        if (onProgress) {
+          onProgress("complete", {});
+        }
+
         resolve();
       }, 0);
     } catch (error) {
