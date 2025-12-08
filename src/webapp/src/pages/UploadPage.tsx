@@ -10,6 +10,7 @@ const UploadPage = () => {
     hasData,
     getVtkImage,
     fileInfo: contextFileInfo,
+    clearDicomData,
   } = useDicomContext();
   const {
     uploadDicomFiles,
@@ -112,11 +113,17 @@ const UploadPage = () => {
   };
 
   const handleBrowseClick = () => {
+    clearUpload();
+    clearDicomData();
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
     fileInputRef.current?.click();
   };
 
   const handleClearFiles = () => {
     clearUpload();
+    clearDicomData();
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }

@@ -36,7 +36,6 @@ const PreviewPage = () => {
 
   const vtkImage = getVtkImage();
 
-
   const handleTissueChange = (type: TissueType) => {
     setTissueType(type);
 
@@ -204,8 +203,16 @@ const PreviewPage = () => {
             onChange={(e) => setHuThreshold(Number(e.target.value))}
             className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500"
           />
-          <div className="text-center mt-2 text-lg font-medium text-blue-600">
-            {huThreshold} HU
+          <div className="flex items-center justify-center gap-2 mt-2">
+            <input
+              type="number"
+              min="-1024"
+              max="3071"
+              value={huThreshold}
+              onChange={(e) => setHuThreshold(Number(e.target.value))}
+              className="w-24 px-3 py-1 text-center text-lg font-medium text-blue-600 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <span className="text-lg font-medium text-gray-600">HU</span>
           </div>
         </div>
       </div>
