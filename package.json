@@ -6,7 +6,11 @@
     "src/webapp"
   ],
   "scripts": {
+    "postinstall": "playwright install --with-deps",
     "test": "npm run test --workspace=src/webapp",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:report": "playwright show-report",
     "install-all": "npm install",
     "dev": "npm run dev --workspace=src/webapp",
     "build": "npm run build --workspace=src/webapp",
@@ -23,6 +27,7 @@
   },
   "homepage": "https://github.com/Team-Ochre-Capstone/Ochre-Capstone#readme",
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "@types/selenium-webdriver": "^4.35.4",
     "chromedriver": "^142.0.3",
     "geckodriver": "^6.0.2",
