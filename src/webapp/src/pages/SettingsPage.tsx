@@ -1,4 +1,4 @@
-import { useAppSettings } from "../hooks/useAppSettings";
+import { useAppSettings } from "../hooks";
 
 const SettingsPage = () => {
   const { settings, updateSettings } = useAppSettings();

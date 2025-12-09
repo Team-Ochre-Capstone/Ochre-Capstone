@@ -1,2 +1,2 @@
-export { useFileUpload } from "./useFileUpload";
-export { useAppSettings } from "./useAppSettings";
+export * from "./useAppSettings";
+export * from "./useDicomUpload";

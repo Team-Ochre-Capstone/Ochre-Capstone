@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useDicomUpload } from "../hooks/useDicomUpload";
+import { useDicomUpload } from "../hooks";
 import { useDicomContext } from "../contexts/DicomContext";
 
 const UploadPage = () => {

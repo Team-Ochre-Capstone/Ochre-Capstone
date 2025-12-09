@@ -27,22 +27,6 @@ export const getFromSession = <T>(key: string): T | null => {
 };
 
 /**
- * Clear all app data from session storage
- */
-export const clearSession = (): void => {
-  try {
-    const keys = Object.keys(sessionStorage);
-    keys.forEach((key) => {
-      if (key.startsWith(STORAGE_PREFIX)) {
-        sessionStorage.removeItem(key);
-      }
-    });
-  } catch (error) {
-    console.warn("Could not clear session storage:", error);
-  }
-};
-
-/**
  * Default app settings
  */
 export const DEFAULT_SETTINGS: AppSettings = {
