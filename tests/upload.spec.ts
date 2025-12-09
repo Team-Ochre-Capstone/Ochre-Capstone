@@ -18,10 +18,21 @@ test.describe("Upload Page", () => {
   }) => {
     await uploadDicomFiles(page);
 
-    await page.getByRole("button", { name: /Continue to 3D Preview/i }).click();
+    // Wait for the upload to be processed
+    await expect(page.getByText("Successfully loaded")).toBeVisible({
+      timeout: 10000,
+    });
 
-    await expect(page).toHaveURL("/preview");
-    await expect(page.locator("h2")).toContainText("3D Preview");
+    const continueButton = page.getByRole("button", {
+      name: /Continue to 3D Preview/i,
+    });
+    await expect(continueButton).toBeEnabled();
+    await continueButton.click();
+
+    await expect(page).toHaveURL("/preview", { timeout: 10000 });
+    await expect(page.locator("h2")).toContainText("3D Preview", {
+      timeout: 10000,
+    });
   });
 
   test("should show patient information after upload", async ({ page }) => {

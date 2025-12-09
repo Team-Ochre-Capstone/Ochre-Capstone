@@ -36,6 +36,23 @@ const PreviewPage = () => {
 
   const vtkImage = getVtkImage();
 
+  if (!vtkImage) {
+    return (
+      <div className="max-w-xl mx-auto mt-10 text-center">
+        <h2 className="text-2xl font-semibold mb-2">No image data</h2>
+        <p className="text-gray-600 mb-4">
+          Unable to load image data. Please try uploading again.
+        </p>
+        <button
+          onClick={() => navigate("/")}
+          className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+        >
+          Go to Upload
+        </button>
+      </div>
+    );
+  }
+
   const handleTissueChange = (type: TissueType) => {
     setTissueType(type);
 
