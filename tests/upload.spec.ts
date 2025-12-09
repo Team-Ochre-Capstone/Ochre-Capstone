@@ -15,7 +15,14 @@ test.describe("Upload Page", () => {
 
   test("should upload DICOM files and navigate to preview", async ({
     page,
+    browserName,
   }) => {
+    // Temporary skip Firefox
+    test.skip(
+      browserName === "firefox",
+      "Temporary skip Firefox has issues with directory uploads in CI"
+    );
+
     await uploadDicomFiles(page);
 
     // Wait for the upload to be processed
@@ -35,7 +42,15 @@ test.describe("Upload Page", () => {
     });
   });
 
-  test("should show patient information after upload", async ({ page }) => {
+  test("should show patient information after upload", async ({
+    page,
+    browserName,
+  }) => {
+    test.skip(
+      browserName === "firefox",
+      "Firefox has issues with directory uploads in CI"
+    );
+
     await uploadDicomFiles(page);
 
     await expect(page.getByText("Successfully loaded")).toBeVisible();
