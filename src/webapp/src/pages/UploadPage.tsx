@@ -95,9 +95,25 @@ const UploadPage = () => {
       files.push(file);
     } else if (entry.isDirectory) {
       const dirReader = entry.createReader();
-      const entries = await new Promise<any[]>((resolve) => {
-        dirReader.readEntries((results: any[]) => resolve(results));
-      });
+
+      const readAllEntries = async (): Promise<any[]> => {
+        const allEntries: any[] = [];
+        let entries: any[] = [];
+
+        do {
+          entries = await new Promise<any[]>((resolve, reject) => {
+            dirReader.readEntries(
+              (results: any[]) => resolve(results),
+              (error: any) => reject(error)
+            );
+          });
+          allEntries.push(...entries);
+        } while (entries.length > 0);
+
+        return allEntries;
+      };
+
+      const entries = await readAllEntries();
 
       for (const childEntry of entries) {
         await traverseFileTree(childEntry, files);
