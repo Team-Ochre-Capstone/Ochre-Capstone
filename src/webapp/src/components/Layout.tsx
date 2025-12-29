@@ -27,6 +27,7 @@ const Navigation = () => {
     { path: "/preview", label: "Preview" },
     { path: "/export", label: "Export" },
     { path: "/settings", label: "Settings" },
+    { path: "/about", label: "About"}
   ];
 
   return (

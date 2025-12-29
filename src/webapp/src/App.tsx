@@ -5,6 +5,7 @@ import UploadPage from "./pages/UploadPage";
 import PreviewPage from "./pages/PreviewPage";
 import ExportPage from "./pages/ExportPage";
 import SettingsPage from "./pages/SettingsPage";
+import AboutPage from "./pages/AboutPage";
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
             <Route path="/preview" element={<PreviewPage />} />
             <Route path="/export" element={<ExportPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path = "/about" element={<AboutPage />}/>
           </Routes>
         </Layout>
       </DicomProvider>
