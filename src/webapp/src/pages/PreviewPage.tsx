@@ -19,7 +19,7 @@ const PreviewPage = () => {
   //Redirect if no data
   if (!hasData) {
     return (
-      <div className="max-w-xl mx-auto mt-10 text-center">
+      <div className="bg-white rounded-lg shadow-md p-8 max-w-xl mx-auto mt-10 text-center">
         <h2 className="text-2xl font-semibold mb-2">No file loaded</h2>
         <p className="text-gray-600 mb-4">
           Please upload a CT scan before previewing a 3D model.
