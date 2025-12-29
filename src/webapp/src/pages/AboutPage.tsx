@@ -1,6 +1,5 @@
-import React from "react";
 
-export default function AboutPage(): JSX.Element {
+export default function AboutPage() {
 	return (
 		<main className="max-w-4xl mx-auto p-8">
             <div className="bg-white rounded-lg shadow-md p-8">
