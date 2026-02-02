@@ -1,4 +1,6 @@
-# Medical CT-Scan 3D Printing Web Application
+# AnaToPrint
+
+Medical CT-Scan 3D Printing Web Application
 
 Capstone project for BS in Computer Science, University of Maine
 
