@@ -6,10 +6,15 @@ const Header = () => {
     <header className="bg-slate-800 text-white px-8 py-2 shadow-lg">
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-3">
-          <img src={logo} alt="Medical CT-Scan Logo" className="h-10 w-auto" />
-          <h1 className="text-2xl font-semibold">
-            Medical CT-Scan 3D Printing
-          </h1>
+          <img src={logo} alt="AnaToPrint Logo" className="h-10 w-auto" />
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight leading-none">
+              AnaToPrint
+            </h1>
+            <p className="text-xs text-slate-400 font-medium">
+              Medical CT-Scan 3D Printing
+            </p>
+          </div>
         </div>
         <div className="text-sm text-slate-300">
           University of Maine - Capstone Project
@@ -27,7 +32,7 @@ const Navigation = () => {
     { path: "/preview", label: "Preview" },
     { path: "/export", label: "Export" },
     { path: "/settings", label: "Settings" },
-    { path: "/about", label: "About"}
+    { path: "/about", label: "About" },
   ];
 
   return (
