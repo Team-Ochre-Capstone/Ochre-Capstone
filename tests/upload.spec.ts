@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { uploadDicomFiles } from "./helpers/upload-helper";
+import path from "path";
 
 test.describe("Upload Page", () => {
   test.setTimeout(60000);
@@ -54,5 +55,18 @@ test.describe("Upload Page", () => {
     await uploadDicomFiles(page);
 
     await expect(page.getByText("Successfully loaded")).toBeVisible();
+  });
+
+  test("should show error for non-DICOM files (folder upload)", async ({ page }) => {
+    await page.goto("/");
+  
+    const fileInput = page.locator('input[type="file"]');
+  
+    //folder containing invalid file(s)
+    const invalidFolderPath = path.join(__dirname, "fixtures/Invalid_Folder");
+  
+    await fileInput.setInputFiles(invalidFolderPath);
+  
+    await expect(page.getByText("Error")).toBeVisible();
   });
 });
